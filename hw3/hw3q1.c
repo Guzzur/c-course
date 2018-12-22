@@ -42,4 +42,6 @@ int main()
     printf("You gain %d", summary);
   else
     printf("You lost %d", -summary);
+
+  return 0;
 }
