@@ -3,16 +3,13 @@
 #define FAIL 1
 #define MAX_LENGTH 50
 
-int main()
+int str_len(char str[])
 {
-  char currChar;
-  char str[MAX_LENGTH], add[MAX_LENGTH];
-
-  while ((currChar = getchar()) != ',')
-  {
-  }
-
-  return OK;
+  int i;
+  /* as long as str[i] != 0 */
+  for (i = 0; str[i] && i < MAX_LENGTH; i++)
+    ;
+  return i;
 }
 
 void print_str_add(char str[], char add[])
@@ -24,11 +21,28 @@ void print_str_add(char str[], char add[])
   }
 }
 
-int str_len(char str[])
+int str_cmp(char str_1[], char str_2[])
 {
-  int i;
-  /* as long as str[i] != 0 */
-  for (i = 0; str[i] && i < MAX_LENGTH; i++)
-    ;
-  return i;
+  int i = 0;
+  char c1, c2;
+  do
+  {
+    c1 = str_1[i];
+    c2 = str_2[i];
+    if (c1 == '\0')
+      return c1 - c2;
+  } while (c1 == c2 && ++i < MAX_LENGTH);
+  return c1 - c2;
+}
+
+int main()
+{
+  char currChar;
+  char str[MAX_LENGTH], add[MAX_LENGTH];
+
+  scanf("%s,%s", &str, &add);
+
+  print_str_add(str, add);
+
+  return OK;
 }
