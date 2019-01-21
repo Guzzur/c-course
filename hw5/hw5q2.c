@@ -1,6 +1,8 @@
 #include <stdio.h>
 #define OK 0
 #define FAIL 1
+#define FALSE 0
+#define TRUE 1
 #define MAX_LENGTH 50
 #define SEPARATOR ','
 #define STR_LAST_INPUT "EZPZ"
@@ -10,7 +12,7 @@
 int str_len(char str[])
 {
   int i;
-  /* as long as str[i] != 0 */
+  /* as long as str[i] != 0, count chars */
   for (i = 0; str[i] && i < MAX_LENGTH; i++)
     ;
   return i;
@@ -23,7 +25,7 @@ void print_str_add(char str[], char add[])
   {
     putchar(str[i] + add[i] - ASCII_NUM_OFFSET);
   }
-  putchar('\n');
+  putchar('\n'); /* TODO: Diff and check if it is needed */
 }
 
 int str_cmp(char str_1[], char str_2[])
@@ -55,19 +57,36 @@ void split_str(char orig[], char str_1[MAX_LENGTH], char str_2[MAX_LENGTH], char
 
 int main()
 {
+  int done = FALSE;
   char currChar;
-  char originalStr[MAX_LENGTH * 2 + 1];
+  char originalStr[MAX_LENGTH * 2 + 1]; /* Max size is: MAX_LENGTH, SEPARATOR, MAX_LENGTH */
   char str[MAX_LENGTH], add[MAX_LENGTH];
 
-  scanf("%s", originalStr);
+  do
+  {
+    /* Scan line */
+    scanf("%s", originalStr);
 
-  split_str(originalStr, &str, &add, SEPARATOR);
+    /* Split it into two parts, separated by SEPARATOR */
+    split_str(originalStr, str, add, SEPARATOR);
 
-  printf("%s\n", originalStr);
-  printf("%s\n", str);
-  printf("%s\n", add);
-
-  print_str_add(str, add);
+    /* Check if it is the last line of input and set the `done` flag if true */
+    if (!str_cmp(str, STR_LAST_INPUT) && !str_cmp(add, ADD_LAST_INPUT))
+    {
+      done = TRUE;
+    }
+    /* It is not the last input line, print using print_str_add function */
+    else
+    {
+      /*
+      TODO: Remove after running all inputs
+      printf("%s\n", originalStr);
+      printf("%s\n", str);
+      printf("%s\n", add);
+      */
+      print_str_add(str, add);
+    }
+  } while (!done);
 
   return OK;
 }
