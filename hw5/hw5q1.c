@@ -6,6 +6,10 @@
 #define MAX_MOVE_RANGE (25)
 #define MAX_NORMAL_ATTACK_RANGE (10)
 #define NORMAL_ATTACK_STRENGTH (10)
+#define INFINITE_DISTANCE (999999)
+
+#define FALSE 0
+#define TRUE 1
 
 enum BattleResult
 {
@@ -24,6 +28,9 @@ double getDistance(int first_length_index, int first_width_index, int second_len
 enum BattleResult getBattleResult(int battlefield[MAX_BATTLE_SIZE][MAX_BATTLE_SIZE], int actual_length, int actual_width);
 void findClosestEnemy(int battlefield[MAX_BATTLE_SIZE][MAX_BATTLE_SIZE], int actual_length, int actual_width,
                       int first_length_index, int first_width_index, int *closest_enemy_length, int *closest_enemy_width);
+int isEnemy(int myValue, int otherValue);
+
+int closest_enemy_length, closest_enemy_width;
 
 int main()
 {
@@ -34,6 +41,7 @@ int main()
 
   /* Initialization of the battle, using "initBattle" function */
   initBattle(battlefield, &actual_length, &actual_width);
+
   battlefield_action_order[current_action_index] = -1;
 
   while (NO_RESULT == getBattleResult(battlefield, actual_length, actual_width))
@@ -41,10 +49,56 @@ int main()
     if (-1 == battlefield_action_order[current_action_index])
     {
       /* We finished iterating on all the soliders and have to create a new order according to new locations */
-      initBattleActionOrder(battlefield, actual_length, actual_width, action_order);
+      initBattleActionOrder(battlefield, actual_length, actual_width, battlefield_action_order);
     }
 
-    /* manage the solider step here */
+    /* DEBUG */
+    displayBoard(battlefield, actual_length, actual_width);
+    printf("Current player is at [%d,%d]\n",
+           battlefield_action_order[current_action_index], battlefield_action_order[current_action_index + 1]);
+    /* DEBUG */
+
+    /* Manages the solider steps */
+    findClosestEnemy(battlefield, actual_length, actual_width,
+                     battlefield_action_order[current_action_index],
+                     battlefield_action_order[current_action_index + 1],
+                     &closest_enemy_length, &closest_enemy_width);
+
+    /* DEBUG */
+    printf("Closest enemy is at [%d,%d]\n", closest_enemy_length, closest_enemy_width);
+    /* DEBUG */
+
+    /* Check if battle is possible, if there are enemies that are close enough */
+    if (getDistance(battlefield_action_order[current_action_index],
+                    battlefield_action_order[current_action_index + 1],
+                    closest_enemy_length,
+                    closest_enemy_width) <= MAX_NORMAL_ATTACK_RANGE)
+    {
+      /* DEBUG */
+      printf("Attacking [%d,%d] from range %.2f\n",
+             closest_enemy_length,
+             closest_enemy_width,
+             getDistance(battlefield_action_order[current_action_index],
+                         battlefield_action_order[current_action_index + 1],
+                         closest_enemy_length, closest_enemy_width));
+      /* DEBUG */
+
+      attack(battlefield, closest_enemy_length, closest_enemy_width);
+    }
+    /* Did not find enemies, move */
+    else
+    {
+      /* DEBUG */
+      printf("Moving [%d,%d] to [%d,%d]\n", actual_length, actual_width,
+             battlefield_action_order[current_action_index],
+             battlefield_action_order[current_action_index + 1]);
+      /* DEBUG */
+
+      move(battlefield, actual_length, actual_width,
+           battlefield_action_order[current_action_index],
+           battlefield_action_order[current_action_index + 1],
+           closest_enemy_length, closest_enemy_width);
+    }
 
     /* The solider turn ended, so we need to move two steps ahead in the battlefield_action_index array, because */
     /* we used here two values from the array: row and column numbers */
@@ -69,15 +123,16 @@ int main()
 
 void initBattle(int battlefield[MAX_BATTLE_SIZE][MAX_BATTLE_SIZE], int *actual_length, int *actual_width)
 {
-  int row, col;
-  scanf("%d", &actual_length);
-  scanf("%d", &actual_width);
+  int row, col, curr;
+  scanf("%d", actual_length);
+  scanf("%d", actual_width);
 
-  for (row = 0; row < actual_length; row++)
+  for (row = 0; row < *actual_length; row++)
   {
-    for (col = 0; col < actual_width; col++)
+    for (col = 0; col < *actual_width; col++)
     {
-      scanf("%d", battlefield[row][col]);
+      scanf("%d", &curr);
+      battlefield[row][col] = curr;
     }
   }
 }
@@ -140,6 +195,28 @@ void displayBoard(int battlefield[MAX_BATTLE_SIZE][MAX_BATTLE_SIZE], int actual_
 void move(int battlefield[MAX_BATTLE_SIZE][MAX_BATTLE_SIZE], int actual_length, int actual_width,
           int first_length_index, int first_width_index, int second_length_index, int second_width_index)
 {
+  int row, col;
+  int new_row = row, new_col = col, curr_distance, distance_from_origin,
+      distance = getDistance(first_length_index,
+                             first_width_index,
+                             second_length_index,
+                             second_width_index);
+
+  for (row = 0; row < actual_length; row++)
+  {
+    for (col = 0; col < actual_width; col++)
+    {
+      curr_distance = getDistance(new_row, new_col, second_length_index, second_width_index);
+      distance_from_origin = getDistance(new_row, new_col, first_length_index, first_width_index);
+
+      if (curr_distance < distance && distance_from_origin < MAX_MOVE_RANGE &&
+          battlefield[row][col] == 0)
+      {
+        new_row = row;
+        new_col = col;
+      }
+    }
+  }
 }
 
 void attack(int battlefield[MAX_BATTLE_SIZE][MAX_BATTLE_SIZE], int attacked_first_coordinate, int attacked_second_coordinate)
@@ -155,15 +232,21 @@ void attack(int battlefield[MAX_BATTLE_SIZE][MAX_BATTLE_SIZE], int attacked_firs
 void findClosestEnemy(int battlefield[MAX_BATTLE_SIZE][MAX_BATTLE_SIZE], int actual_length, int actual_width,
                       int first_length_index, int first_width_index, int *closest_enemy_length, int *closest_enemy_width)
 {
-  int row, col;
-  int sign = (battlefield[actual_length][actual_width] > 0) ? 1 : -1;
-  for (row = first_length_index; row < first_length_index + closest_enemy_length; row++)
+  int row, col, found_length = -1, found_width = -1, closest_enemy_distance = INFINITE_DISTANCE;
+  for (row = actual_length - 1; row >= 0; row--)
   {
-    for (col = first_width_index + closest_enemy_width; col = first_width_index; col--)
+    for (col = 0; col < actual_width; col++)
     {
-      if (isEnemy(sign, battlefield[row][col]))
+      if (battlefield[row][col] != 0 &&
+          isEnemy(battlefield[first_length_index][first_width_index], battlefield[row][col]) &&
+          getDistance(row, col, first_length_index, first_length_index) < closest_enemy_distance)
       {
-        /* TODO: Do I need to return something here? But it is a void func... */
+        closest_enemy_distance = getDistance(row, col, first_length_index, first_length_index);
+        found_length = row;
+        found_width = col;
+        /* DEBUG */
+        printf("Closest enemy is at [%d,%d], %dm far\n", row, col, closest_enemy_distance);
+        /* DEBUG */
       }
     }
   }
@@ -171,5 +254,10 @@ void findClosestEnemy(int battlefield[MAX_BATTLE_SIZE][MAX_BATTLE_SIZE], int act
 
 int isEnemy(int myValue, int otherValue)
 {
+  /* DEBUG */
+  printf("Is enemy [%d] to [%d] = %d\n",
+         myValue, otherValue, myValue * otherValue < 0);
+  /* DEBUG */
+
   return myValue * otherValue < 0;
 }
