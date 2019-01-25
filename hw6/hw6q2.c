@@ -12,12 +12,23 @@ int main()
 
 void multi(int a, int b)
 {
-  if (a < 10 && b < 10)
-    printf("%d\n", a * b);
-  if (a > 9)
+  if (a > 0)
+  {
     multi(a / 10, b);
-  if (b > 9)
-    multi(a, b / 10);
+  }
+  if (b > 0)
+  {
+    multi(a % 10, b / 10);
+  }
+  if (a > 0 && b > 0)
+  {
+    /*
+    printf("a=%d, b=%d\n", a, b);
+
+    printf("%d * %d = ", (a % 10), (b % 10));
+    */
+    printf("%d\n", (a % 10) * (b % 10));
+  }
 }
 
 /*
